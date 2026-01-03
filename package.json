@@ -40,20 +40,9 @@
       "target":
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ],
           "publish": ["github"]
         },
       "icon": "assets/icon.ico"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerLanguages": [
-        "ja"
-      ],
-      "language": "1041"
     },
     "files": [
       "dist/**/*",
