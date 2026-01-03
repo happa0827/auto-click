@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>Auto Clicker - 設定</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- ヘッダー -->
+    <header class="header">
+      <h1>Auto Clicker</h1>
+      <div class="status" id="status">
+        <span class="status-indicator" id="status-indicator"></span>
+        <span id="status-text">停止中</span>
+      </div>
+    </header>
+
+    <!-- タブナビゲーション -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="click">クリック設定</button>
+      <button class="tab-btn" data-tab="position">位置設定</button>
+      <button class="tab-btn" data-tab="hotkey">ホットキー</button>
+    </nav>
+
+    <!-- タブコンテンツ -->
+    <main class="tab-content">
+      <!-- クリック設定タブ -->
+      <section class="tab-panel active" id="tab-click">
+        <div class="form-group">
+          <label>クリックボタン</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="button" value="left" checked>
+              <span>左クリック</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="button" value="right">
+              <span>右クリック</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="button" value="middle">
+              <span>中クリック</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>クリックタイプ</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="clickType" value="single" checked>
+              <span>シングル</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="clickType" value="double">
+              <span>ダブル</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="interval">クリック間隔 (ミリ秒)</label>
+          <div class="input-with-unit">
+            <input type="number" id="interval" min="10" max="60000" value="100">
+            <span class="unit">ms</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="repeatCount">繰り返し回数</label>
+          <div class="input-with-unit">
+            <input type="number" id="repeatCount" min="0" value="0">
+            <span class="unit">回 (0=無限)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 位置設定タブ -->
+      <section class="tab-panel" id="tab-position">
+        <div class="form-group">
+          <label>位置モード</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="positionMode" value="current" checked>
+              <span>現在のマウス位置</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="positionMode" value="fixed">
+              <span>固定位置</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group position-coords" id="position-coords">
+          <label>固定座標</label>
+          <div class="coords-input">
+            <div class="coord-field">
+              <label for="posX">X:</label>
+              <input type="number" id="posX" min="0" value="0">
+            </div>
+            <div class="coord-field">
+              <label for="posY">Y:</label>
+              <input type="number" id="posY" min="0" value="0">
+            </div>
+          </div>
+          <button class="btn btn-secondary" id="pick-position">
+            画面から位置を取得
+          </button>
+          <p class="hint" id="picker-hint"></p>
+        </div>
+
+        <div class="current-position">
+          <label>現在のマウス位置:</label>
+          <span id="current-pos">X: 0, Y: 0</span>
+        </div>
+      </section>
+
+      <!-- ホットキー設定タブ -->
+      <section class="tab-panel" id="tab-hotkey">
+        <div class="form-group">
+          <label for="hotkey-toggle">開始/停止 ホットキー</label>
+          <input type="text" id="hotkey-toggle" class="hotkey-input" value="F6" readonly>
+          <p class="hint">クリックしてキーを押してください</p>
+        </div>
+
+        <div class="form-group">
+          <label for="hotkey-pause">一時停止 ホットキー</label>
+          <input type="text" id="hotkey-pause" class="hotkey-input" value="F7" readonly>
+          <p class="hint">クリックしてキーを押してください</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- フッター（コントロールボタン） -->
+    <footer class="footer">
+      <div class="click-count" id="click-count">
+        クリック回数: <span id="count-value">0</span>
+      </div>
+      <div class="controls">
+        <button class="btn btn-primary" id="btn-toggle">開始</button>
+        <button class="btn btn-secondary" id="btn-save">設定を保存</button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="renderer.js" type="module"></script>
+</body>
+</html>

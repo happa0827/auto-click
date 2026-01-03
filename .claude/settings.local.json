@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(sc:brainstorm)",
+      "Bash(npm install)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}
