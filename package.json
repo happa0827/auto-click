@@ -12,7 +12,7 @@
     "watch:main": "tsc -p tsconfig.main.json --watch",
     "watch:renderer": "tsc -p tsconfig.renderer.json --watch",
     "package": "npm run build && electron-builder --win",
-    "package:portable": "npm run build && electron-builder --win portable"
+    "publish": "npm run build && electron-builder --publish always"
   },
   "author": "",
   "license": "MIT",
@@ -37,20 +37,14 @@
       "output": "release"
     },
     "win": {
-      "target": [
+      "target":
         {
           "target": "nsis",
           "arch": [
             "x64"
-          ]
+          ],
+          "publish": ["github"]
         },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
       "icon": "assets/icon.ico"
     },
     "nsis": {
