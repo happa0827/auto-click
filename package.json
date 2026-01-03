@@ -36,8 +36,11 @@
     "directories": {
       "output": "release"
     },
+    "files": [
+      "dist/**/*",
+      "assets/**/*"
+    ],
     "win": {
-      "target": {
         "target": "nsis",
         "publish": [
           "github"
@@ -45,10 +48,6 @@
       },
       "icon": "assets/icon.ico"
     },
-    "files": [
-      "dist/**/*",
-      "assets/**/*"
-    ],
     "extraResources": [
       {
         "from": "assets/",
@@ -56,4 +55,3 @@
       }
     ]
   }
-}
