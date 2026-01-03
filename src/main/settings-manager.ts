@@ -32,7 +32,7 @@ export class SettingsManager {
       click: {
         button: this.validateClickButton(settings.click?.button),
         clickType: settings.click?.clickType === 'double' ? 'double' : 'single',
-        interval: Math.max(10, Math.min(60000, settings.click?.interval || 100)),
+        interval: Math.max(1, Math.min(60000, settings.click?.interval || 100)),
         repeatCount: Math.max(0, settings.click?.repeatCount || 0),
       },
       position: {

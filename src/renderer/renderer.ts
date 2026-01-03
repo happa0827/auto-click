@@ -135,7 +135,7 @@ class SettingsUI {
 
     const intervalInput = document.getElementById('interval') as HTMLInputElement;
     intervalInput.addEventListener('change', () => {
-      this.settings.click.interval = Math.max(10, parseInt(intervalInput.value) || 100);
+      this.settings.click.interval = Math.max(1, parseInt(intervalInput.value) || 100);
     });
 
     const repeatInput = document.getElementById('repeatCount') as HTMLInputElement;
