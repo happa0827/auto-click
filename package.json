@@ -1,6 +1,6 @@
 {
   "name": "auto-clicker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Windows用自動クリックツール - ゲーム自動化向け",
   "main": "dist/main/main/main.js",
   "scripts": {
