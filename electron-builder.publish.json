@@ -1,0 +1,7 @@
+{
+  "publish": {
+    "provider": "github",
+    "owner": "happa0827",
+    "repo": "auto-click"
+  }
+}

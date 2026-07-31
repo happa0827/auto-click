@@ -11,12 +11,17 @@ interface ClickSettings {
   clickType: ClickType;
   interval: number;
   repeatCount: number;
+  holdEnabled: boolean;
+  holdDurationMs: number;
+  holdUntilOff: boolean;
 }
+
+type ClickOrderMode = 'simultaneous' | 'sequential';
 
 interface PositionSettings {
   mode: PositionMode;
-  x: number;
-  y: number;
+  positions: Array<{ x: number; y: number }>;
+  clickOrder: ClickOrderMode;
 }
 
 interface HotkeySettings {
@@ -42,11 +47,14 @@ const DEFAULT_SETTINGS: AppSettings = {
     clickType: 'single',
     interval: 100,
     repeatCount: 0,
+    holdEnabled: false,
+    holdDurationMs: 300,
+    holdUntilOff: false,
   },
   position: {
     mode: 'current',
-    x: 0,
-    y: 0,
+    positions: [{ x: 0, y: 0 }],
+    clickOrder: 'simultaneous',
   },
   hotkey: {
     toggle: 'F6',
@@ -62,6 +70,7 @@ interface ElectronAPI {
   stopClicking(): void;
   toggleClicking(): void;
   getMousePosition(): Promise<{ x: number; y: number }>;
+  getAppVersion(): Promise<string>;
   onStateChanged(callback: (state: AppState) => void): () => void;
   onSettingsLoaded(callback: (settings: AppSettings) => void): () => void;
 }
@@ -83,6 +92,13 @@ class SettingsUI {
   }
 
   private async init(): Promise<void> {
+    const version = await window.electronAPI.getAppVersion();
+    const versionEl = document.getElementById('app-version');
+    if (versionEl) {
+      versionEl.textContent = `v${version}`;
+    }
+    document.title = `Auto Clicker v${version} - 設定`;
+
     // 設定を読み込む
     this.settings = await window.electronAPI.getSettings();
     this.applySettingsToUI();
@@ -143,6 +159,27 @@ class SettingsUI {
       this.settings.click.repeatCount = Math.max(0, parseInt(repeatInput.value) || 0);
     });
 
+    const holdEnabled = document.getElementById('holdEnabled') as HTMLInputElement;
+    holdEnabled.addEventListener('change', () => {
+      this.settings.click.holdEnabled = holdEnabled.checked;
+      if (!holdEnabled.checked) {
+        this.settings.click.holdUntilOff = false;
+        (document.getElementById('holdUntilOff') as HTMLInputElement).checked = false;
+      }
+      this.updateHoldOptionsUI();
+    });
+
+    const holdUntilOffEl = document.getElementById('holdUntilOff') as HTMLInputElement;
+    holdUntilOffEl.addEventListener('change', () => {
+      this.settings.click.holdUntilOff = holdUntilOffEl.checked;
+      this.updateHoldOptionsUI();
+    });
+
+    const holdDurationMs = document.getElementById('holdDurationMs') as HTMLInputElement;
+    holdDurationMs.addEventListener('change', () => {
+      this.settings.click.holdDurationMs = Math.max(1, parseInt(holdDurationMs.value) || 300);
+    });
+
     // 位置設定
     document.querySelectorAll('input[name="positionMode"]').forEach((radio) => {
       radio.addEventListener('change', (e) => {
@@ -152,19 +189,47 @@ class SettingsUI {
       });
     });
 
-    const posXInput = document.getElementById('posX') as HTMLInputElement;
-    posXInput.addEventListener('change', () => {
-      this.settings.position.x = Math.max(0, parseInt(posXInput.value) || 0);
+    document.querySelectorAll('input[name="clickOrder"]').forEach((radio) => {
+      radio.addEventListener('change', (e) => {
+        const target = e.target as HTMLInputElement;
+        this.settings.position.clickOrder = target.value as 'simultaneous' | 'sequential';
+      });
     });
 
-    const posYInput = document.getElementById('posY') as HTMLInputElement;
-    posYInput.addEventListener('change', () => {
-      this.settings.position.y = Math.max(0, parseInt(posYInput.value) || 0);
-    });
+    // 位置追加ボタン
+    const addPositionBtn = document.getElementById('add-position') as HTMLButtonElement;
+    addPositionBtn.addEventListener('click', () => this.addPosition());
 
-    // 位置ピッカー
-    const pickBtn = document.getElementById('pick-position') as HTMLButtonElement;
-    pickBtn.addEventListener('click', () => this.startPositionPicker());
+    // 位置リスト（イベント委譲）
+    const positionsList = document.getElementById('positions-list');
+    positionsList?.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      const item = target.closest('[data-position-index]');
+      const idx = item?.getAttribute('data-position-index');
+      if (idx != null && (target.name === 'posX' || target.name === 'posY')) {
+        const i = parseInt(idx, 10);
+        const xInput = item?.querySelector('input[name="posX"]') as HTMLInputElement;
+        const yInput = item?.querySelector('input[name="posY"]') as HTMLInputElement;
+        if (xInput && yInput && this.settings.position.positions[i]) {
+          this.settings.position.positions[i] = {
+            x: Math.max(0, parseInt(xInput.value) || 0),
+            y: Math.max(0, parseInt(yInput.value) || 0),
+          };
+        }
+      }
+    });
+    positionsList?.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const item = target.closest('[data-position-index]');
+      const idx = item?.getAttribute('data-position-index');
+      if (idx == null) return;
+      const i = parseInt(idx, 10);
+      if (target.classList.contains('pick-position-btn')) {
+        this.startPositionPicker(i);
+      } else if (target.classList.contains('remove-position-btn')) {
+        this.removePosition(i);
+      }
+    });
 
     // ホットキー設定
     const toggleInput = document.getElementById('hotkey-toggle') as HTMLInputElement;
@@ -251,17 +316,27 @@ class SettingsUI {
     (document.getElementById('repeatCount') as HTMLInputElement).value =
       this.settings.click.repeatCount.toString();
 
+    const holdEl = document.getElementById('holdEnabled') as HTMLInputElement;
+    if (holdEl) holdEl.checked = this.settings.click.holdEnabled ?? false;
+    const holdUntilEl = document.getElementById('holdUntilOff') as HTMLInputElement;
+    if (holdUntilEl) holdUntilEl.checked = this.settings.click.holdUntilOff ?? false;
+    (document.getElementById('holdDurationMs') as HTMLInputElement).value = (
+      this.settings.click.holdDurationMs ?? 300
+    ).toString();
+    this.updateHoldOptionsUI();
+
     // 位置設定
     const positionRadio = document.querySelector(
       `input[name="positionMode"][value="${this.settings.position.mode}"]`
     ) as HTMLInputElement;
     if (positionRadio) positionRadio.checked = true;
 
-    (document.getElementById('posX') as HTMLInputElement).value =
-      this.settings.position.x.toString();
-    (document.getElementById('posY') as HTMLInputElement).value =
-      this.settings.position.y.toString();
+    const clickOrderRadio = document.querySelector(
+      `input[name="clickOrder"][value="${this.settings.position.clickOrder ?? 'simultaneous'}"]`
+    ) as HTMLInputElement;
+    if (clickOrderRadio) clickOrderRadio.checked = true;
 
+    this.renderPositionsList();
     this.updatePositionCoordsState();
 
     // ホットキー設定
@@ -271,9 +346,78 @@ class SettingsUI {
       this.settings.hotkey.pause;
   }
 
+  private updateHoldOptionsUI(): void {
+    const holdEnabledEl = document.getElementById('holdEnabled') as HTMLInputElement;
+    const holdUntilOffEl = document.getElementById('holdUntilOff') as HTMLInputElement;
+    const durationRow = document.getElementById('hold-duration-row');
+    const untilOffWrap = document.getElementById('hold-until-off-wrap');
+    const hintDefault = document.getElementById('hold-hint-default');
+    const hintUntilOff = document.getElementById('hold-hint-until-off');
+
+    const he = holdEnabledEl?.checked ?? false;
+    const huo = holdUntilOffEl?.checked ?? false;
+
+    untilOffWrap?.classList.toggle('disabled', !he);
+    if (!he && holdUntilOffEl) {
+      holdUntilOffEl.checked = false;
+      this.settings.click.holdUntilOff = false;
+    }
+
+    durationRow?.classList.toggle('disabled', !he || huo);
+    hintDefault?.classList.toggle('hidden', he && huo);
+    hintUntilOff?.classList.toggle('hidden', !(he && huo));
+  }
+
   private updatePositionCoordsState(): void {
     const coordsSection = document.getElementById('position-coords') as HTMLElement;
     coordsSection.classList.toggle('disabled', this.settings.position.mode === 'current');
+    const addBtn = document.getElementById('add-position') as HTMLButtonElement;
+    if (addBtn) {
+      addBtn.style.display = this.settings.position.mode === 'fixed' ? '' : 'none';
+    }
+  }
+
+  private renderPositionsList(): void {
+    const list = document.getElementById('positions-list');
+    if (!list) return;
+
+    const positions = this.settings.position.positions ?? [{ x: 0, y: 0 }];
+    list.innerHTML = positions
+      .map(
+        (p, i) => `
+      <div class="position-item" data-position-index="${i}">
+        <label class="position-item-label">位置 ${i + 1}</label>
+        <div class="coords-input">
+          <div class="coord-field">
+            <label>X:</label>
+            <input type="number" name="posX" min="0" value="${p.x}">
+          </div>
+          <div class="coord-field">
+            <label>Y:</label>
+            <input type="number" name="posY" min="0" value="${p.y}">
+          </div>
+        </div>
+        <div class="position-item-actions">
+          <button type="button" class="btn btn-secondary pick-position-btn">取得</button>
+          ${i > 0 ? `<button type="button" class="btn btn-remove remove-position-btn">削除</button>` : ''}
+        </div>
+      </div>
+    `
+      )
+      .join('');
+  }
+
+  private addPosition(): void {
+    this.settings.position.positions.push({ x: 0, y: 0 });
+    this.renderPositionsList();
+    this.updatePositionCoordsState();
+  }
+
+  private removePosition(index: number): void {
+    if (index <= 0 || this.settings.position.positions.length <= 1) return;
+    this.settings.position.positions.splice(index, 1);
+    this.renderPositionsList();
+    this.updatePositionCoordsState();
   }
 
   private updateStateUI(): void {
@@ -316,25 +460,22 @@ class SettingsUI {
     }, 100);
   }
 
-  private async startPositionPicker(): Promise<void> {
+  private async startPositionPicker(index: number): Promise<void> {
     const hint = document.getElementById('picker-hint') as HTMLElement;
-    hint.textContent = '画面上の任意の場所をクリックしてください...';
 
-    // 3秒間マウス位置を監視し、次のクリックで位置を取得
     const checkPosition = async (): Promise<void> => {
       const pos = await window.electronAPI.getMousePosition();
-      (document.getElementById('posX') as HTMLInputElement).value = pos.x.toString();
-      (document.getElementById('posY') as HTMLInputElement).value = pos.y.toString();
-      this.settings.position.x = pos.x;
-      this.settings.position.y = pos.y;
-      hint.textContent = `位置を取得しました: X=${pos.x}, Y=${pos.y}`;
+      if (this.settings.position.positions[index]) {
+        this.settings.position.positions[index] = { x: pos.x, y: pos.y };
+        this.renderPositionsList();
+      }
+      hint.textContent = `位置${index + 1}を取得しました: X=${pos.x}, Y=${pos.y}`;
 
       setTimeout(() => {
         hint.textContent = '';
       }, 3000);
     };
 
-    // スペースキーで位置を取得
     const handler = (e: KeyboardEvent): void => {
       if (e.code === 'Space') {
         e.preventDefault();

@@ -3,7 +3,8 @@
     "allow": [
       "Skill(sc:brainstorm)",
       "Bash(npm install)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "mcp__obsidian__create_note"
     ]
   }
 }

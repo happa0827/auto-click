@@ -15,6 +15,7 @@ const IPC_CHANNELS = {
   GET_MOUSE_POSITION: 'get-mouse-position',
   REGISTER_HOTKEY: 'register-hotkey',
   SHOW_WINDOW: 'show-window',
+  GET_APP_VERSION: 'get-app-version',
 } as const;
 
 // レンダラープロセスに公開するAPI
@@ -41,6 +42,10 @@ const electronAPI = {
   // マウス位置取得
   getMousePosition: (): Promise<{ x: number; y: number }> => {
     return ipcRenderer.invoke(IPC_CHANNELS.GET_MOUSE_POSITION);
+  },
+
+  getAppVersion: (): Promise<string> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.GET_APP_VERSION);
   },
 
   // イベントリスナー

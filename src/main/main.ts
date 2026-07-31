@@ -5,6 +5,7 @@ app.on('ready', function()  {
 });
 
 import * as path from 'path';
+import * as fs from 'fs';
 import { ClickerService } from './clicker-service';
 import { SettingsManager } from './settings-manager';
 import { IPC_CHANNELS, AppState, AppSettings } from '../shared/types';
@@ -27,6 +28,9 @@ class AutoClickerApp {
 
   async init(): Promise<void> {
     await app.whenReady();
+
+    // Windows でタスクバーのアイコン／通知を正しく紐付けるために必要
+    app.setAppUserModelId('com.autoclicker.app');
 
     this.createTray();
     this.setupIPC();
@@ -62,27 +66,60 @@ class AutoClickerApp {
   }
 
   private createDefaultIcon(status: 'idle' | 'running' | 'paused'): NativeImage {
-    // 16x16のシンプルなアイコンを生成
-    const colors = {
-      idle: '#808080',
-      running: '#00FF00',
-      paused: '#FFFF00',
+    // 16x16のシンプルなアイコンを生成（黒縁の丸）
+    // createFromBuffer は PNG/JPEG しか受け付けないため、生のビットマップから作る
+    const colors: Record<typeof status, [number, number, number]> = {
+      idle: [128, 128, 128],
+      running: [0, 255, 0],
+      paused: [255, 255, 0],
     };
-    const color = colors[status];
+    const [r, g, b] = colors[status];
 
-    // SVGでアイコンを生成
-    const svg = `
-      <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="8" cy="8" r="6" fill="${color}" stroke="#000" stroke-width="1"/>
-      </svg>
-    `;
+    const size = 16;
+    const center = size / 2;
+    const bitmap = Buffer.alloc(size * size * 4); // BGRA
 
-    return nativeImage.createFromBuffer(Buffer.from(svg));
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x + 0.5 - center;
+        const dy = y + 0.5 - center;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const offset = (y * size + x) * 4;
+
+        if (distance <= 6) {
+          bitmap[offset] = b;
+          bitmap[offset + 1] = g;
+          bitmap[offset + 2] = r;
+          bitmap[offset + 3] = 255;
+        } else if (distance <= 7) {
+          // 縁取り（黒）
+          bitmap[offset + 3] = 255;
+        }
+      }
+    }
+
+    return nativeImage.createFromBitmap(bitmap, { width: size, height: size });
   }
 
   private getIconPath(status: 'idle' | 'running' | 'paused'): string {
-    const iconName = `icon-${status}.ico`;
-    return path.join(__dirname, '..', '..', '..', 'assets', iconName);
+    return this.resolveAssetPath(`icon-${status}.ico`);
+  }
+
+  private getAppIconPath(): string {
+    return this.resolveAssetPath('icon.ico');
+  }
+
+  private resolveAssetPath(fileName: string): string {
+    // パッケージ化後は resources/assets/、開発時はプロジェクトルートの assets/。
+    // asar 同梱分もフォールバックとして見る。
+    const candidates = app.isPackaged
+      ? [
+          path.join(process.resourcesPath, 'assets', fileName),
+          path.join(app.getAppPath(), 'assets', fileName),
+        ]
+      : [path.join(__dirname, '..', '..', '..', 'assets', fileName)];
+
+    return candidates.find((p) => fs.existsSync(p)) ?? candidates[0];
   }
 
   private updateTrayMenu(): void {
@@ -124,7 +161,18 @@ class AutoClickerApp {
       }
     }
 
-    const icon = this.createDefaultIcon(status);
+    // アイコンファイルを読み込む（失敗時はデフォルトアイコン）
+    const iconPath = this.getIconPath(status);
+    let icon: NativeImage;
+    try {
+      icon = nativeImage.createFromPath(iconPath);
+      if (icon.isEmpty()) {
+        icon = this.createDefaultIcon(status);
+      }
+    } catch {
+      icon = this.createDefaultIcon(status);
+    }
+
     this.tray.setImage(icon);
     this.tray.setToolTip(tooltip);
     this.updateTrayMenu();
@@ -133,12 +181,14 @@ class AutoClickerApp {
   private createWindow(): void {
     this.mainWindow = new BrowserWindow({
       width: 450,
-      height: 550,
+      height: 600,
+      title: `Auto Clicker v${app.getVersion()}`,
       resizable: false,
       maximizable: false,
       minimizable: true,
       show: false,
       autoHideMenuBar: true,
+      icon: this.getAppIconPath(),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -195,6 +245,10 @@ class AutoClickerApp {
 
     ipcMain.handle(IPC_CHANNELS.GET_MOUSE_POSITION, () => {
       return this.clickerService.getMousePosition();
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GET_APP_VERSION, () => {
+      return app.getVersion();
     });
 
     ipcMain.on(IPC_CHANNELS.SHOW_WINDOW, () => {

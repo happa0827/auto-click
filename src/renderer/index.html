@@ -11,7 +11,10 @@
   <div class="app">
     <!-- ヘッダー -->
     <header class="header">
-      <h1>Auto Clicker</h1>
+      <div class="header-left">
+        <h1>Auto Clicker</h1>
+        <span class="app-version" id="app-version" aria-label="バージョン"></span>
+      </div>
       <div class="status" id="status">
         <span class="status-indicator" id="status-indicator"></span>
         <span id="status-text">停止中</span>
@@ -70,6 +73,24 @@
         </div>
 
         <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="holdEnabled">
+            <span>ホールド（押し続ける）</span>
+          </label>
+          <label class="checkbox-label" id="hold-until-off-wrap">
+            <input type="checkbox" id="holdUntilOff">
+            <span>停止・一時停止するまで押し続ける</span>
+          </label>
+          <div class="input-with-unit" id="hold-duration-row">
+            <label for="holdDurationMs" class="inline-label">押し続ける時間</label>
+            <input type="number" id="holdDurationMs" min="1" max="60000" value="300">
+            <span class="unit">ms</span>
+          </div>
+          <p class="hint" id="hold-hint-default">オフのときは通常のクリック（押してすぐ離す）</p>
+          <p class="hint" id="hold-hint-until-off">複数位置のときは先頭の位置のみ。一時停止すると一度離し、再開でまた押します。</p>
+        </div>
+
+        <div class="form-group">
           <label for="repeatCount">繰り返し回数</label>
           <div class="input-with-unit">
             <input type="number" id="repeatCount" min="0" value="0">
@@ -94,20 +115,26 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label>複数位置のクリック順序</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="clickOrder" value="simultaneous" checked>
+              <span>同時にクリック</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="clickOrder" value="sequential">
+              <span>順番にクリック</span>
+            </label>
+          </div>
+          <p class="hint">「順番に」は各位置をインターバルごとに1つずつクリック</p>
+        </div>
+
         <div class="form-group position-coords" id="position-coords">
           <label>固定座標</label>
-          <div class="coords-input">
-            <div class="coord-field">
-              <label for="posX">X:</label>
-              <input type="number" id="posX" min="0" value="0">
-            </div>
-            <div class="coord-field">
-              <label for="posY">Y:</label>
-              <input type="number" id="posY" min="0" value="0">
-            </div>
-          </div>
-          <button class="btn btn-secondary" id="pick-position">
-            画面から位置を取得
+          <div id="positions-list"></div>
+          <button class="btn btn-secondary" id="add-position" type="button">
+            + 位置を追加
           </button>
           <p class="hint" id="picker-hint"></p>
         </div>

@@ -44,9 +44,22 @@ body {
   border-bottom: 1px solid var(--border-color);
 }
 
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .header h1 {
   font-size: 18px;
   font-weight: 600;
+}
+
+.app-version {
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
 }
 
 .status {
@@ -191,6 +204,27 @@ input[type="text"]:focus {
   flex: 1;
 }
 
+.inline-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+#hold-duration-row {
+  margin-top: 8px;
+  align-items: center;
+}
+
+#hold-duration-row.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
 .unit {
   color: var(--text-secondary);
   font-size: 13px;
@@ -229,6 +263,59 @@ input[type="text"]:focus {
 .position-coords.disabled {
   opacity: 0.5;
   pointer-events: none;
+}
+
+.position-item {
+  margin-bottom: 12px;
+  padding: 12px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.position-item-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.position-item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.position-item-actions .btn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-remove {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-remove:hover {
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+#add-position {
+  margin-top: 12px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: var(--primary-color);
 }
 
 .current-position {
